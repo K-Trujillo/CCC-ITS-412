@@ -1,10 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
+	"log"
+	"os"
 
 	_ "github.com/stacktitan/ldapauth"
 )
@@ -40,8 +40,8 @@ func (e MyError) Error() string {
 	return string(e)
 }
 
-func errorHandler() error {
-	return errors.New("something bad happened here")
+func errorHandler(er any) error {
+	return errors.New("something bad happened here, check this out: " + er.(string))
 }
 
 type Sonion struct {
@@ -53,7 +53,7 @@ func main() {
 	//TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
 	// to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
 
-	go test(100)
+	/*go test(100)
 	time.Sleep(2 * time.Second)
 
 	c := make(chan int)
@@ -77,5 +77,81 @@ func main() {
 
 	if err := errorHandler(); err != nil {
 		fmt.Println(err)
+	}*/
+
+	//									   //
+	// This is where the real stuff begins //
+	//									   //
+
+	//TIP PT 1. Create + Drop file (test)
+
+	// Create file
+	newFile, err := os.Create("drop_here/test.txt")
+
+	if err != nil {
+		err := errorHandler(err)
+		if err != nil {
+			return
+		}
+		log.Fatal(err)
 	}
+	log.Println(newFile)
+	defer newFile.Close()
+
+	// Write bytes to the file
+	byteSlice := []byte("Add + Edit\nPooped out this file")
+	bytesWritten, err := newFile.Write(byteSlice)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Bytes written:", bytesWritten)
+
+	// Getting file info
+	fileInfo, err := os.Stat("killswitch.txt")
+	if err != nil {
+		err := errorHandler(err)
+		if err != nil {
+			return
+		}
+		log.Fatal(err)
+	}
+
+	fmt.Println("File name: ", fileInfo.Name())
+	fmt.Println("File size: ", fileInfo.Size())
+	fmt.Println("File Last Modified: ", fileInfo.ModTime())
+
+	// Checking if file exists
+	fileInfo2, err := os.Stat("check_here/onswitch.txt")
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Fatal(err)
+		}
+	}
+	log.Println("File exists, File Name:", fileInfo2.Name())
+	//log.Println(fileInfo)
+
+	// Writing to a file
+	file1, err := os.OpenFile("check_here/edit.txt", os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file1.Close()
+
+	// Write bytes to the file
+	byteSlice2 := []byte("Wrote bytes to here\nWorm wuz here")
+	bytesWritten2, err := file1.Write(byteSlice2)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println("Bytes written:", bytesWritten2)
+
+	//TIP PT 2a. Scan ports
+
+	//TIP PT 2b. Duplication + Send
+
+	//TIP PT 3. SSH/RDP into ports
+
+	//TIP PT 4a. Read files + Functionality/Determination
+
+	//TIP PT 4b. Modify + Drop files
 }
