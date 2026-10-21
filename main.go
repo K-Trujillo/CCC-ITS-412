@@ -4,7 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net"
 	"os"
+	"strconv"
+	"time"
 
 	_ "github.com/stacktitan/ldapauth"
 )
@@ -30,10 +33,6 @@ func test(num int) {
 	}
 }
 
-func strlen(s string, c chan int) {
-	c <- len(s)
-}
-
 type MyError string
 
 func (e MyError) Error() string {
@@ -44,9 +43,22 @@ func errorHandler(er any) error {
 	return errors.New("something bad happened here, check this out: " + er.(string))
 }
 
-type Sonion struct {
-	Bar string
-	Baz string
+func strlen(s string, c chan int) {
+	c <- len(s)
+}
+
+var ip = "192.168.3.205"
+var minPort = 0
+var maxPort = 1024
+var sshPort = 22
+var RDPPort = 455
+
+func testTCPConnection(ip string, port int, doneChan chan bool) {
+	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second*10)
+	if err == nil {
+		log.Printf("Port %d: Open\n", port)
+	}
+	doneChan <- true
 }
 
 func main() {
@@ -107,7 +119,7 @@ func main() {
 	log.Println("Bytes written:", bytesWritten)
 
 	// Getting file info
-	fileInfo, err := os.Stat("killswitch.txt")
+	fileInfo, err := os.Stat("check_here/killswitch.txt")
 	if err != nil {
 		err := errorHandler(err)
 		if err != nil {
@@ -146,6 +158,41 @@ func main() {
 	log.Println("Bytes written:", bytesWritten2)
 
 	//TIP PT 2a. Scan ports
+
+	// Btw, the stuff down here I can't test because my laptop is being a chud
+	activeThreads := 0
+	doneChannel := make(chan bool)
+
+	for port := minPort; port <= maxPort; port++ {
+		go testTCPConnection(ip, port, doneChannel)
+
+		// Write open ports to file
+		/*portFile, err := os.Create("drop_here/ports.txt")
+
+		if err != nil {
+			err := errorHandler(err)
+			if err != nil {
+				return
+			}
+			log.Fatal(err)
+		}
+		log.Println(portFile)
+		defer portFile.Close()
+
+		// Write bytes to the file
+		byteSlicePortFile := []byte("Open Ports: " + string(rune(port)))
+		bytesWrittenPortFile, err := portFile.Write(byteSlicePortFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("Port Bytes written:", bytesWrittenPortFile)*/
+	}
+
+	// Wait for threads to finish
+	for activeThreads > 0 {
+		<-doneChannel
+		activeThreads--
+	}
 
 	//TIP PT 2b. Duplication + Send
 
