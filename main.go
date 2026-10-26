@@ -48,15 +48,23 @@ func strlen(s string, c chan int) {
 }
 
 var ip = "192.168.3.219"
-var minPort = 0
+var minPort = 1
 var maxPort = 1024
 var sshPort = 22
 var RDPPort = 455
 
-func testTCPConnection(ip string, port int, doneChan chan bool) {
-	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second*10)
+func testTCPConnection(ip string, port int, doneChan chan bool, file *os.File) {
+	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second)
 	if err == nil {
 		log.Printf("Port %d: Open\n", port)
+
+		// Write bytes to the file
+		byteSlicePortFile := []byte("Open Ports: " + strconv.Itoa(port) + "\n")
+		bytesWrittenPortFile, err := file.Write(byteSlicePortFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("Port Bytes written:", bytesWrittenPortFile)
 	}
 	doneChan <- true
 }
@@ -160,38 +168,26 @@ func main() {
 	//TIP PT 2a. Scan ports
 
 	// Btw, the stuff down here I can't test because my laptop is being a chud
-	activeThreads := 0
 	doneChannel := make(chan bool)
+	// Write open ports to file
+	portFile, err := os.Create("drop_here/ports.txt")
+	if err != nil {
+		err := errorHandler(err)
+		if err != nil {
+			return
+		}
+		log.Fatal(err)
+	}
+	log.Println(portFile)
+	defer portFile.Close()
 
 	for port := minPort; port <= maxPort; port++ {
-		go testTCPConnection(ip, port, doneChannel)
-
-		// Write open ports to file
-		/*portFile, err := os.Create("drop_here/ports.txt")
-
-		if err != nil {
-			err := errorHandler(err)
-			if err != nil {
-				return
-			}
-			log.Fatal(err)
-		}
-		log.Println(portFile)
-		defer portFile.Close()
-
-		// Write bytes to the file
-		byteSlicePortFile := []byte("Open Ports: " + string(rune(port)))
-		bytesWrittenPortFile, err := portFile.Write(byteSlicePortFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println("Port Bytes written:", bytesWrittenPortFile)*/
+		go testTCPConnection(ip, port, doneChannel, portFile)
 	}
 
-	// Wait for threads to finish
-	for activeThreads > 0 {
+	// Wait for routines to finish
+	for port := minPort; port <= maxPort; port++ {
 		<-doneChannel
-		activeThreads--
 	}
 
 	//TIP PT 2b. Duplication + Send
