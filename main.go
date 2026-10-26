@@ -47,7 +47,7 @@ func strlen(s string, c chan int) {
 	c <- len(s)
 }
 
-var ip = "192.168.3.205"
+var ip = "192.168.3.219"
 var minPort = 0
 var maxPort = 1024
 var sshPort = 22
