@@ -190,9 +190,9 @@ func main() {
 		<-doneChannel
 	}
 
-	//TIP PT 2b. Duplication + Send
+	//TIP PT 2b. SSH/RDP into ports
 
-	//TIP PT 3. SSH/RDP into ports
+	//TIP PT 3. Duplication + Send
 
 	//TIP PT 4a. Read files + Functionality/Determination
 
