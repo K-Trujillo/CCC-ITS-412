@@ -57,22 +57,6 @@ var maxPort = 1024
 var sshPort = 22
 var RDPPort = 455
 
-func testTCPConnection(ip string, port int, doneChan chan bool, file *os.File) {
-	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second)
-	if err == nil {
-		log.Printf("Port %d: Open\n", port)
-
-		// Write bytes to the file
-		byteSlicePortFile := []byte("IP Address: " + ip + " Open Ports: " + strconv.Itoa(port) + "\n")
-		bytesWrittenPortFile, err := file.Write(byteSlicePortFile)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.Println("Port Bytes written:", bytesWrittenPortFile)
-	}
-	doneChan <- true
-}
-
 func dumpDetails(ip string, port int, doneChan chan bool, file *os.File) {
 	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second)
 
@@ -89,6 +73,20 @@ func dumpDetails(ip string, port int, doneChan chan bool, file *os.File) {
 	}
 
 	doneChan <- true
+}
+
+func printUsage() {
+	fmt.Println(os.Args[0] + ` - Brute force SSH Password 
+ 
+	Passwords should be separated by newlines. 
+	URL should include hostname or ip with port number separated by colon 
+ 
+	Usage: 
+	  ` + os.Args[0] + ` <username> <pwlistfile> <url:port> 
+ 
+	Example: 
+  		` + os.Args[0] + ` root passwords.txt example.com:22 
+	`)
 }
 
 func main() {
@@ -193,7 +191,7 @@ func main() {
 	doneChannel := make(chan bool)
 
 	// Write open ports to file
-	portFile, err := os.Create("loot/ports.txt")
+	/*portFile, err := os.Create("loot/ports.txt")
 	if err != nil {
 		err := errorHandler(err)
 		if err != nil {
@@ -202,7 +200,7 @@ func main() {
 		log.Fatal(err)
 	}
 	log.Println(portFile)
-	defer portFile.Close()
+	defer portFile.Close()*/
 
 	dumpFile, err := os.Create("loot/ips.txt")
 	if err != nil {
